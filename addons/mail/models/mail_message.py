@@ -870,6 +870,9 @@ class Message(models.Model):
 
         message = super(Message, self).create(values)
 
+        if values.get('attachment_ids'):
+            message.attachment_ids.check(mode='read')
+
         message._notify(force_send=self.env.context.get('mail_notify_force_send', True),
                         user_signature=self.env.context.get('mail_notify_user_signature', True))
         return message
@@ -880,6 +883,14 @@ class Message(models.Model):
             by the ORM. It instead directly fetches ir.rules and apply them. """
         self.check_access_rule('read')
         return super(Message, self).read(fields=fields, load=load)
+
+    @api.multi
+    def write(self, vals):
+        res = super(Message, self).write(vals)
+        if vals.get('attachment_ids'):
+            for mail in self:
+                mail.attachment_ids.check(mode='read')
+        return res
 
     @api.multi
     def unlink(self):

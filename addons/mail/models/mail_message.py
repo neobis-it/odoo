@@ -342,9 +342,9 @@ class Message(models.Model):
                 if attachment.id in attachments_tree:
                     attachment_ids.append(attachments_tree[attachment.id])
             tracking_value_ids = []
-            for tracking_value in message.tracking_value_ids:
-                if tracking_value.id in tracking_tree:
-                    tracking_value_ids.append(tracking_tree[tracking_value.id])
+            for tracking_value_id in message_to_tracking.get(message_id, list()):
+                if tracking_value_id in tracking_tree:
+                    tracking_value_ids.append(tracking_tree[tracking_value_id])
 
             message_dict.update({
                 'author_id': author,
@@ -718,6 +718,9 @@ class Message(models.Model):
 
         message = super(Message, self).create(values)
 
+        if values.get('attachment_ids'):
+            message.attachment_ids.check(mode='read')
+
         if not self.env.context.get('message_create_from_mail_mail'):
             message._notify(force_send=self.env.context.get('mail_notify_force_send', True),
                             user_signature=self.env.context.get('mail_notify_user_signature', True))
@@ -729,6 +732,14 @@ class Message(models.Model):
             by the ORM. It instead directly fetches ir.rules and apply them. """
         self.check_access_rule('read')
         return super(Message, self).read(fields=fields, load=load)
+
+    @api.multi
+    def write(self, vals):
+        res = super(Message, self).write(vals)
+        if vals.get('attachment_ids'):
+            for mail in self:
+                mail.attachment_ids.check(mode='read')
+        return res
 
     @api.multi
     def unlink(self):

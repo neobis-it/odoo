@@ -342,15 +342,15 @@ class Message(models.Model):
                 if attachment.id in attachments_tree:
                     attachment_ids.append(attachments_tree[attachment.id])
             tracking_value_ids = []
-            for tracking_value_id in message_to_tracking.get(message_id, list()):
-                if tracking_value_id in tracking_tree:
-                    tracking_value_ids.append(tracking_tree[tracking_value_id])
+            for tracking_value in message.tracking_value_ids:
+                 if tracking_value.id in tracking_tree:
+                     tracking_value_ids.append(tracking_tree[tracking_value.id])
 
             message_dict.update({
                 'author_id': author,
                 'partner_ids': partner_ids,
                 'customer_email_status': (all(d[2] == 'sent' for d in customer_email_data) and 'sent') or
-                                        (any(d[2] == 'exception' for d in customer_email_data) and 'exception') or 
+                                        (any(d[2] == 'exception' for d in customer_email_data) and 'exception') or
                                         (any(d[2] == 'bounce' for d in customer_email_data) and 'bounce') or 'ready',
                 'customer_email_data': customer_email_data,
                 'attachment_ids': attachment_ids,
@@ -761,7 +761,7 @@ class Message(models.Model):
             Call mail_notification.notify to manage the email sending
         """
         group_user = self.env.ref('base.group_user')
-        # have a sudoed copy to manipulate partners (public can go here with 
+        # have a sudoed copy to manipulate partners (public can go here with
         # website modules like forum / blog / ...
         self_sudo = self.sudo()
 

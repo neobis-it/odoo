@@ -62,18 +62,7 @@ class MailMail(models.Model):
             values['notification'] = True
         if not values.get('mail_message_id'):
             self = self.with_context(message_create_from_mail_mail=True)
-        new_mail = super(MailMail, self).create(values)
-        if values.get('attachment_ids'):
-            new_mail.attachment_ids.check(mode='read')
-        return new_mail
-
-    @api.multi
-    def write(self, vals):
-        res = super(MailMail, self).write(vals)
-        if vals.get('attachment_ids'):
-            for mail in self:
-                mail.attachment_ids.check(mode='read')
-        return res
+        return super(MailMail, self).create(values)
 
     @api.multi
     def unlink(self):

@@ -5,7 +5,8 @@ from werkzeug.exceptions import NotFound, Forbidden
 
 from odoo import http
 from odoo.http import request
-from odoo.tools import consteq
+from odoo.osv import expression
+from odoo.tools import consteq, plaintext2html
 
 
 def _has_token_access(res_model, res_id, token=''):
@@ -36,7 +37,7 @@ def _message_post_helper(res_model='', res_id=None, message='', token='', nosubs
         access_as_sudo = _has_token_access(res_model, res_id, token=token)
         if access_as_sudo:
             record = record.sudo()
-            if request.env.user == request.env.ref('base.public_user'):
+            if request.env.user._is_public():
                 author_id = record.partner_id.id if hasattr(record, 'partner_id') else author_id
             else:
                 if not author_id:
@@ -58,6 +59,8 @@ class PortalChatter(http.Controller):
     def portal_chatter_post(self, res_model, res_id, message, **kw):
         url = request.httprequest.referrer
         if message:
+            # message is received in plaintext and saved in html
+            message = plaintext2html(message)
             _message_post_helper(res_model, int(res_id), message, **kw)
             url = url + "#discussion"
         return request.redirect(url)
@@ -95,6 +98,9 @@ class PortalChatter(http.Controller):
             access_as_sudo = _has_token_access(res_model, res_id, token=kw.get('token'))
             if not access_as_sudo:  # if token is not correct, raise Forbidden
                 raise Forbidden()
+            # Non-employee see only messages with not internal subtype (aka, no internal logs)
+            if not request.env['res.users'].has_group('base.group_user'):
+                domain = expression.AND([['&', ('subtype_id', '!=', False), ('subtype_id.internal', '=', False)], domain])
             Message = request.env['mail.message'].sudo()
         return {
             'messages': Message.search(domain, limit=limit, offset=offset).portal_message_format(),

@@ -32,6 +32,7 @@ class ResPartner(models.Model):
     signup_url = fields.Char(compute='_compute_signup_url', string='Signup URL')
 
     @api.multi
+    @api.depends('signup_token', 'signup_expiration')
     def _compute_signup_valid(self):
         dt = now()
         for partner in self.sudo():
@@ -107,6 +108,7 @@ class ResPartner(models.Model):
         allow_signup = self.env['ir.config_parameter'].sudo().get_param('auth_signup.allow_uninvited', 'False').lower() == 'true'
         for partner in self:
             if allow_signup and not partner.user_ids:
+                partner = partner.sudo()
                 partner.signup_prepare()
                 res[partner.id]['auth_signup_token'] = partner.signup_token
             elif partner.user_ids:

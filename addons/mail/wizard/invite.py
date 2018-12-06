@@ -24,11 +24,11 @@ class Invite(models.TransientModel):
         model = result.get('res_model')
         res_id = result.get('res_id')
         if model and res_id:
-            document = self.env['ir.model'].search([('model', '=', model)]).name_get()[0][1]
+            document = self.env['ir.model']._get(model).display_name
             title = self.env[model].browse(res_id).display_name
             msg_fmt = _('%(user_name)s invited you to follow %(document)s document: %(title)s')
         else:
-            msg_fmt = _('%(user_name)s invited you to follow a new document')
+            msg_fmt = _('%(user_name)s invited you to follow a new document.')
 
         text = msg_fmt % locals()
         message = html.DIV(
@@ -58,8 +58,7 @@ class Invite(models.TransientModel):
             new_channels = wizard.channel_ids - document.message_channel_ids
             document.message_subscribe(new_partners.ids, new_channels.ids)
 
-            model_ids = self.env['ir.model'].search([('model', '=', wizard.res_model)])
-            model_name = model_ids.name_get()[0][1]
+            model_name = self.env['ir.model']._get(wizard.res_model).display_name
             # send an email if option checked and if a message exists (do not send void emails)
             if wizard.send_mail and wizard.message and not wizard.message == '<br>':  # when deleting the message, cleditor keeps a <br>
                 message = self.env['mail.message'].create({
